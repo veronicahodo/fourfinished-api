@@ -41,4 +41,14 @@ export const Assign = {
         if (!assignee) return false;
         return assignee.role;
     },
+
+    async updateRole(taskId, userId, role) {
+        await db(assigneeTable)
+            .where({
+                task_id: taskId,
+                user_id: userId,
+            })
+            .update({ role });
+        return true;
+    },
 };

@@ -9,6 +9,7 @@ import { handleError } from "../../tools/handleError.js";
 
 export const getUser = async (req, res) => {
     const unit = "userController.getUser";
+    const refUserId = req.user ? req.user.id : "";
 
     const { userId } = req.params;
 
@@ -20,18 +21,13 @@ export const getUser = async (req, res) => {
             Log.warn(
                 unit,
                 `User ${workingUserId} not found`,
-                req.user ? req.user.id : "",
+                refUserId,
                 req.ip
             );
         }
         return res.status(200).json({ data: user });
     } catch (error) {
-        await Log.error(
-            unit,
-            error.message,
-            req.user ? req.user.id : "",
-            req.ip
-        );
+        await Log.error(unit, error.message, refUserId, req.ip);
         return res.status(500).json({
             error: "error:internalServerError",
             message: error.message,
@@ -41,8 +37,19 @@ export const getUser = async (req, res) => {
 
 export const postUser = async (req, res) => {
     const unit = "userController.postUser";
+    const refUserId = req.user ? req.user.id : "";
 
-    const { email, password, first_name, last_name } = req.body;
+    const { email, password, first_name, last_name, language } = req.body;
+
+    const lang = language ?? "en";
+
+    const taskParams = {
+        owner_id: req.user.id,
+        completion: 0,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+        archived: 0,
+    };
 
     try {
         // Create the user
@@ -51,6 +58,7 @@ export const postUser = async (req, res) => {
             password,
             first_name,
             last_name,
+            language: lang,
             deleted: false,
             verified: false,
             created_at: Date.now(),
@@ -64,50 +72,38 @@ export const postUser = async (req, res) => {
         });
         // ... and populate it with some tasks
         await Task.create({
-            owner_id: req.user.id,
+            ...taskParams,
             parent_id: list.id,
             title: "Here's your first task 🎉",
             description: "Complete with a description",
-            completion: 0,
-            created_at: Date.now(),
-            updated_at: Date.now(),
-            archived: 0,
         });
         const secondTask = await Task.create({
-            owner_id: req.user.id,
+            ...taskParams,
             parent_id: list.id,
             title: "This is the second task 🤖",
             description: null,
             completion: 20,
-            created_at: Date.now(),
-            updated_at: Date.now(),
-            archived: 0,
         });
         await Task.create({
-            owner_id: req.user.id,
+            ...taskParams,
             parent_id: secondTask.id,
             title: "And this one is nested under it's parent! 🕶️",
             description: null,
-            completion: 0,
-            created_at: Date.now(),
-            updated_at: Date.now(),
-            archived: 0,
         });
         const token = await Verification.issue(user.id);
+        const { subject, textBody, htmlBody } = getMailTemplate(
+            "verifcation",
+            user.language
+        );
+        const tag = "%%VERIFY_LINK%%";
+        const value = `${process.env.APP_URL}/verify/${token}`;
         await sendMail(
-            email,
-            emails.verification.subject,
-            emails.verification.textBody.replace(
-                "%%VERIFY_LINK%%",
-                `${process.env.APP_URL}/verify/${token}`
-            )
+            user.email,
+            subject,
+            textBody.replace(tag, value),
+            htmlBody.replace(tag, value)
         );
-        await Log.info(
-            unit,
-            `User ${user.id} created`,
-            req.user ? req.user.id : "",
-            req.ip
-        );
+        await Log.info(unit, `User ${user.id} created`, refUserId, req.ip);
         delete user.password_hash;
         return res.status(201).json({ data: user });
     } catch (error) {
@@ -117,12 +113,14 @@ export const postUser = async (req, res) => {
 
 export const putUser = async (req, res) => {
     const unit = "userController.putUser";
+    const refUserId = req.user ? req.user.id : "";
 
-    const { first_name, last_name } = req.body;
+    const { first_name, last_name, language } = req.body;
 
     const outData = {};
     if (first_name) outData.first_name = first_name;
     if (last_name) outData.last_name = last_name;
+    if (language) outData.language = language;
 
     try {
         const user = await User.retrieve(req.user.id);
@@ -130,7 +128,7 @@ export const putUser = async (req, res) => {
             await Log.warn(
                 unit,
                 `User ${workingUserId} not found`,
-                req.user ? req.user.id : "",
+                refUserId,
                 req.ip
             );
             return res.status(404).json({
@@ -142,7 +140,7 @@ export const putUser = async (req, res) => {
         await Log.info(
             unit,
             `User ${workingUserId} updated`,
-            req.user ? req.user.id : "",
+            refUserId,
             req.ip
         );
         return res.status(200).json({ data: user });

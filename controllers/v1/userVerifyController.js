@@ -2,6 +2,9 @@ import { Log } from "../../tools/logger.js";
 import { User } from "../../services/v1/userService.js";
 import { Verification } from "../../services/v1/verificationService.js";
 import { handleError } from "../../tools/handleError.js";
+import sendMail, { getMailTemplate } from "../../tools/mailer.js";
+import { emails } from "../../resources/v1/emailRegistry.js";
+import { body } from "express-validator";
 
 export const postUserVerify = async (req, res) => {
     const unit = "userVerifyController.postUserVerify";
@@ -68,7 +71,20 @@ export const postUserVerifyResend = async (req, res) => {
                 message: "User already verified",
             });
         }
-        await Verification.issue(user.id);
+        const token = await Verification.issue(user.id);
+        // Send email again.
+        const { subject, textBody, htmlBody } = getMailTemplate(
+            "verifcation",
+            user.language
+        );
+        const tag = "%%VERIFY_LINK%%";
+        const value = `${process.env.APP_URL}/verify/${token}`;
+        await sendMail(
+            user.email,
+            subject,
+            textBody.replace(tag, value),
+            htmlBody.replace(tag, value)
+        );
         await Log.info(
             unit,
             `Verification token issued for user ${user.id}`,

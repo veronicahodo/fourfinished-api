@@ -96,6 +96,35 @@ export const getListAll = async (req, res) => {
     }
 };
 
+export const putList = async (req, res) => {
+    const unit = "listController.putList";
+    const refUserId = req.user ? req.user.id : "";
+
+    const { listId } = req.params;
+
+    const { title, color, icon } = req.body;
+
+    const outData = {};
+    if (title) outData.title = title;
+    if (color) outData.color = color;
+    if (icon) outData.icon = icon;
+
+    try {
+        let list = await List.retrieve(listId);
+        if (!list) {
+            await Log.warn(unit, `List ${listId} not found`, refUserId, req.ip);
+            return res
+                .status(404)
+                .json({ error: "error:notFound", message: "List not found" });
+        }
+        list = await List.update(listId, outData);
+        await Log.info(unit, `List ${list.id} updated`, refUserId, req.ip);
+        return res.status(200).json({ data: list });
+    } catch (error) {
+        return await handleError(req, res, unit, error);
+    }
+};
+
 export const deleteList = async (req, res) => {
     const unit = "listController.deleteList";
     const refUserId = req.user ? req.user.id : "";

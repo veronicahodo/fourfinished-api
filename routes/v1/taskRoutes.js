@@ -3,6 +3,7 @@ import { secureAuthenticate } from "../../middleware/auth.js";
 import {
     getTask,
     postTask,
+    postTaskNote,
     putTask,
 } from "../../controllers/v1/taskController.js";
 import {
@@ -14,6 +15,7 @@ const router = express.Router();
 
 router.get("/:taskId", secureAuthenticate, getTask);
 
+router.post("/:taskId/note", secureAuthenticate, postTaskNote);
 router.post("/", validatePostTask, secureAuthenticate, postTask);
 
 router.put("/:taskId", validatePutTask, secureAuthenticate, putTask);

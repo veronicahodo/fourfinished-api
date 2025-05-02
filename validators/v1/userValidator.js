@@ -19,6 +19,13 @@ export const validatePostUser = [
         .isString()
         .isLength({ min: 1, max: 50 })
         .withMessage("last_name must be between 1 and 50 characters"),
+    body("language")
+        .optional({ values: null })
+        .isString()
+        .isLength({ min: 2, max: 2 })
+        .withMessage(
+            "language must be a valid language code (en, es, fr, etc.)"
+        ),
     (req, res, next) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
@@ -60,6 +67,13 @@ export const validatePutUser = [
         .isString()
         .isLength({ min: 1, max: 50 })
         .withMessage("last_name must be between 1 and 50 characters"),
+    body("language")
+        .optional()
+        .isString()
+        .isLength({ min: 2, max: 2 })
+        .withMessage(
+            "language must be a valid language code (en, es, fr, etc.)"
+        ),
     (req, res, next) => {
         const errors = validationResult(req);
         if (!errors.isEmpty()) {

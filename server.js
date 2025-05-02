@@ -7,6 +7,8 @@ import { Log } from "./tools/logger.js";
 
 import userRoutes from "./routes/v1/userRoutes.js";
 import taskRoutes from "./routes/v1/taskRoutes.js";
+import assignRoutes from "./routes/v1/assignRoutes.js";
+import listRoutes from "./routes/v1/listRoutes.js";
 
 dotenv.config();
 
@@ -16,6 +18,8 @@ app.use(cors());
 
 app.use("/v1/user", userRoutes);
 app.use("/v1/task", taskRoutes);
+app.use("/v1/assign", assignRoutes);
+app.use("/v1/list", listRoutes);
 
 // "Oh shit, we didn't match anything else."
 app.use("/", (req, res) => {

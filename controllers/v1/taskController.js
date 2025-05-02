@@ -3,21 +3,18 @@ import { Task } from "../../services/v1/taskService.js";
 import { Tag } from "../../services/v1/tagService.js";
 import { Assign } from "../../services/v1/assignService.js";
 import { handleError } from "../../tools/handleError.js";
+import { History } from "../../services/v1/historyService.js";
 
 export const getTask = async (req, res) => {
     const unit = "taskController.getTask";
+    const refUserId = req.user ? req.user.id : "";
 
     const { taskId } = req.params;
 
     try {
         const task = await Task.retrieve(taskId);
         if (!task) {
-            await Log.warn(
-                unit,
-                `Task ${taskId} not found`,
-                req.user ? req.user.id : "",
-                req.ip
-            );
+            await Log.warn(unit, `Task ${taskId} not found`, refUserId, req.ip);
             return res
                 .status(404)
                 .json({ error: "error:notFound", message: "Task not found" });
@@ -26,7 +23,7 @@ export const getTask = async (req, res) => {
             await Log.warn(
                 unit,
                 `Tried to load ${task.id} without access`,
-                req.user ? req.user.id : "",
+                refUserId,
                 req.ip
             );
             return res.status(403).json({
@@ -34,8 +31,9 @@ export const getTask = async (req, res) => {
                 message: "You do not have permission to view this task",
             });
         }
-        task.tags = await Tag.getTaskTags(task.id);
-        task.assignees = await Assign.getAssignees(task.id);
+        task.tags = (await Tag.getTaskTags(task.id)) ?? [];
+        task.assignees = (await Assign.getAssignees(task.id)) ?? [];
+        task.history = (await History.retrieve(task.id)) ?? [];
         return res.status(200).json({ data: task });
     } catch (error) {
         return await handleError(req, res, unit, error);
@@ -44,6 +42,7 @@ export const getTask = async (req, res) => {
 
 export const postTask = async (req, res) => {
     const unit = "taskController.postTask";
+    const refUserId = req.user ? req.user.id : "";
 
     const { title, description, completion, parent_id, tags } = req.body;
 
@@ -62,15 +61,10 @@ export const postTask = async (req, res) => {
 
     try {
         const task = await Task.create(outData);
-        if (Array.isArray(tags) && tags.length > 0)
+        if (tags && Array.isArray(tags) && tags.length > 0)
             await Tag.add(task.id, tags);
-        await Assign.addAssignee(task.id, req.user.id, "edit");
-        await Log.info(
-            unit,
-            `Task ${task.id} created`,
-            req.user ? req.user.id : "",
-            req.ip
-        );
+        await Assign.addAssignee(task.id, req.user.id, "manage");
+        await Log.info(unit, `Task ${task.id} created`, refUserId, req.ip);
         return res.status(201).json({ data: task });
     } catch (error) {
         return await handleError(req, res, unit, error);
@@ -79,6 +73,7 @@ export const postTask = async (req, res) => {
 
 export const putTask = async (req, res) => {
     const unit = "taskController.putTask";
+    const refUserId = req.user ? req.user.id : "";
 
     const { taskId } = req.params;
 
@@ -95,7 +90,7 @@ export const putTask = async (req, res) => {
             await Log.warn(
                 unit,
                 `Tried to update non-existant task ${taskId}`,
-                req.user ? req.user.id : "",
+                refUserId,
                 req.ip
             );
             return res
@@ -106,14 +101,33 @@ export const putTask = async (req, res) => {
 
         if (tags && tags.length > 0) await Tag.update(task.id, tags);
 
-        await Log.info(
-            "taskController.putTask",
-            `Updated task ${task.id}`,
-            req.user ? req.user.ip : "",
-            req.ip
-        );
+        await Log.info(unit, `Updated task ${task.id}`, refUserId, req.ip);
         return res.status(200).json({ data: task });
     } catch (error) {
-        return await handleError(req, res, "taskController.putTask");
+        return await handleError(req, res, unit, error);
+    }
+};
+
+export const postTaskNote = async (req, res) => {
+    const unit = "taskController.postTaskNode";
+    const refUserId = req.user ? req.user.id : "";
+
+    const { taskId } = req.params;
+
+    const { message } = req.body;
+
+    try {
+        const task = await Task.retrieve(taskId);
+        if (!task) {
+            await Log.warn(unit, `Task ${taskId} not found`, refUserId, req.ip);
+            return res
+                .status(404)
+                .json({ error: "error:notFound", message: "Task not found" });
+        }
+        await History.add(taskId, refUserId, message, 0);
+        await Log.info(unit, `Added note to ${taskId}`, refUserId, req.ip);
+        return res.status(201).json({ data: true });
+    } catch (error) {
+        return await handleError(req, res, unit, error);
     }
 };
