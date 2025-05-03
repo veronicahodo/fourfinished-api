@@ -5,7 +5,7 @@ const listTable = "lists";
 
 export const List = {
     async create(data) {
-        data.id = await generateId();
+        data.id = await generateId(listTable, "list_");
         await db(listTable).insert(data);
         return data;
     },

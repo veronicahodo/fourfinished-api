@@ -4,6 +4,7 @@ import { Tag } from "../../services/v1/tagService.js";
 import { Assign } from "../../services/v1/assignService.js";
 import { handleError } from "../../tools/handleError.js";
 import { History } from "../../services/v1/historyService.js";
+import { List } from "../../services/v1/listService.js";
 
 export const getTask = async (req, res) => {
     const unit = "taskController.getTask";
@@ -40,6 +41,45 @@ export const getTask = async (req, res) => {
     }
 };
 
+export const getTaskChildren = async (req, res) => {
+    const unit = "taskController.getTaskChildren";
+    const refUserId = req.user ? req.user.id : "";
+
+    const { taskId } = req.params;
+
+    try {
+        const task = await Task.retrieve(taskId);
+        const list = await List.retrieve(taskId);
+        if (!task && !list) {
+            await Log.warn(
+                unit,
+                `Parent ${taskId} not found`,
+                refUserId,
+                req.ip
+            );
+            return res.status(404).json({
+                error: "error:notFound",
+                message: "Task not found",
+            });
+        }
+        //  because fuck
+        const demKids = await Task.listChildren(taskId);
+
+        const outArray = [];
+
+        for (const kid of demKids) {
+            outArray.push({
+                ...kid,
+                tags: (await Tag.getTaskTags(kid.id)) ?? [],
+                assignees: (await Assign.getAssignees(kid.id)) ?? [],
+                history: (await History.retrieve(kid.id)) ?? [],
+            });
+        }
+        return res.status(200).json({ data: outArray });
+    } catch (error) {
+        return await handleError(req, res, unit, error);
+    }
+};
 export const postTask = async (req, res) => {
     const unit = "taskController.postTask";
     const refUserId = req.user ? req.user.id : "";
@@ -82,7 +122,9 @@ export const putTask = async (req, res) => {
     const outData = {};
     if (title !== undefined) outData.title = title;
     if (description !== undefined) outData.description = description;
-    if (completion) outData.completion = completion;
+    if (completion !== undefined) outData.completion = completion;
+
+    console.log(outData);
 
     try {
         const exists = Task.retrieve(taskId);
@@ -98,7 +140,7 @@ export const putTask = async (req, res) => {
                 .json({ error: "error:notFound", message: "Task not found" });
         }
         const task = await Task.update(taskId, outData);
-
+        task.completion = Number(completion);
         if (tags && tags.length > 0) await Tag.update(task.id, tags);
 
         await Log.info(unit, `Updated task ${task.id}`, refUserId, req.ip);

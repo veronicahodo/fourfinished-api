@@ -10,7 +10,7 @@ export const validatePostTask = [
         .withMessage("title must be between 1 and 255 characters")
         .trim(),
     body("description")
-        .optional({ values: null })
+        .optional({ values: "null" })
         .isString()
         .withMessage("description must be a string")
         .trim(),
@@ -37,7 +37,7 @@ export const validatePutTask = [
         .withMessage("title must be between 1 and 255 characters")
         .trim(),
     body("description")
-        .optional()
+        .optional({ values: "null" })
         .isString()
         .withMessage("description must be a string")
         .trim(),

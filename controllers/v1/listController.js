@@ -9,7 +9,7 @@ export const postList = async (req, res) => {
 
     const { title, color, icon } = req.body;
 
-    const outData = { title };
+    const outData = { title, owner_id: req.user.id };
     if (color) outData.color = color;
     if (icon) outData.icon = icon;
 

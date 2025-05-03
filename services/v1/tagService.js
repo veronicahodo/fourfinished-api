@@ -33,6 +33,7 @@ export const Tag = {
 
     async getTaskTags(taskId) {
         const tags = await db(tagTable).where({ task_id: taskId });
+        console.log(tags);
         return tags.map((tag) => tag.tag);
     },
 };

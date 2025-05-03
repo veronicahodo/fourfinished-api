@@ -2,13 +2,13 @@ import express from "express";
 import {
     validateDeleteAssign,
     validatePostPutAssign,
-} from "../../validators/v1/assignValidator";
-import { secureAuthenticate } from "../../middleware/auth";
+} from "../../validators/v1/assignValidator.js";
+import { secureAuthenticate } from "../../middleware/auth.js";
 import {
     deleteAssign,
     postAssign,
     putAssign,
-} from "../../controllers/v1/assignController";
+} from "../../controllers/v1/assignController.js";
 
 const router = express.Router();
 

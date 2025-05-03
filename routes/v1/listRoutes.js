@@ -1,12 +1,12 @@
 import express from "express";
-import { secureAuthenticate } from "../../middleware/auth";
+import { secureAuthenticate } from "../../middleware/auth.js";
 import {
     deleteList,
     getList,
     getListAll,
     postList,
     putList,
-} from "../../controllers/v1/listController";
+} from "../../controllers/v1/listController.js";
 
 const router = express.Router();
 
