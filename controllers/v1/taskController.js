@@ -48,18 +48,19 @@ export const getTaskChildren = async (req, res) => {
     const { taskId } = req.params;
 
     try {
-        const task = await Task.retrieve(taskId);
-        const list = await List.retrieve(taskId);
-        if (!task && !list) {
+        let exists;
+        if (taskId.startsWith("task_")) exists = await Task.retrieve(taskId);
+        else exists = await List.retrieve(taskId);
+        if (!exists) {
             await Log.warn(
                 unit,
                 `Parent ${taskId} not found`,
                 refUserId,
                 req.ip
             );
-            return res.status(404).json({
-                error: "error:notFound",
-                message: "Task not found",
+            return res.status(400).json({
+                error: "error:badRequest",
+                message: "Parent not found",
             });
         }
         //  because fuck
@@ -75,6 +76,12 @@ export const getTaskChildren = async (req, res) => {
                 history: (await History.retrieve(kid.id)) ?? [],
             });
         }
+        await Log.info(
+            unit,
+            `Retrieved children of ${taskId}`,
+            refUserId,
+            req.ip
+        );
         return res.status(200).json({ data: outArray });
     } catch (error) {
         return await handleError(req, res, unit, error);

@@ -27,8 +27,10 @@ export const Task = {
         return await db(taskTable).where({ user_id: userId });
     },
 
-    async listChildren(parentId) {
-        return await db(taskTable).where({ parent_id: parentId });
+    async listChildren(parentId, archived = false) {
+        const searchParams = { parent_id: parentId };
+        if (!archived) searchParams.archived = archived;
+        return await db(taskTable).where(searchParams);
     },
 
     async changeOwnership(taskId, newOwnerId) {
