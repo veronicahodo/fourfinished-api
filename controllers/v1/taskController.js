@@ -124,8 +124,6 @@ export const putTask = async (req, res) => {
     if (description !== undefined) outData.description = description;
     if (completion !== undefined) outData.completion = completion;
 
-    console.log(outData);
-
     try {
         const exists = Task.retrieve(taskId);
         if (!exists) {
