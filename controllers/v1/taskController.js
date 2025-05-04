@@ -124,9 +124,10 @@ export const putTask = async (req, res) => {
 
     const { taskId } = req.params;
 
-    const { title, description, completion, tags } = req.body;
+    const { archived, title, description, completion, tags } = req.body;
 
     const outData = {};
+    if (archived !== undefined) outData.archived = archived;
     if (title !== undefined) outData.title = title;
     if (description !== undefined) outData.description = description;
     if (completion !== undefined) outData.completion = completion;
